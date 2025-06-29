@@ -1,7 +1,7 @@
 import random
 import time
 from eventos import random_evento_obg, random_evento_escolha
-
+from recursos import itens_pendentes
 CATALOGO_PAISES = {
     "Brasil": {
         "dinheiro": 60,
@@ -23,29 +23,54 @@ class Jogador:
         self.dinheiro = ficha["dinheiro"]
         self.saude = ficha["saude"]
         self.satisfacao = ficha["satisfacao"]
+        self.itens = []
+
+    def ad_item(self, item):
+        self.itens.append(item)
+
+    def rem_item(self, item):
+        if item in self.itens:
+            self.itens.remove(item)
+        else:
+            print ("O jogador não possui o item a ser removido.")
 
 j1 = Jogador("j1", "Brasil")
 j2 = Jogador("j2", "Franca")
 
+rodadas = 1
 vez = 1
+
+def acessar_itens(jogador):
+    if not jogador.itens:
+        print ("Você não possui itens")
+    else:
+        for i in range(len(jogador.itens)):
+            print(jogador.itens[i - 1])
+        print ("Deseja usar algum deles? Se sim, digite o nome do item, se não, digite sair")
+
+
 def rodada(jogador):
     time.sleep(5)
     random_evento_obg(jogador)
     time.sleep(5)
     random_evento_escolha(jogador)
+    jogador.itens.append(itens_pendentes)
+    itens_pendentes.clear()
 
 def turno():
-    global vez
+    global vez, rodadas
     if vez == 1:
-        print (f"Vez de {j1.nome}")
+        player_atual = j1
+        print (f"Vez de {player_atual.nome}")
         time.sleep(2.5)
-        rodada(j1)
+        rodada(player_atual)
         vez +=1
     elif vez ==2:
-        print(f"Vez de {j2.nome}")
+        print(f"Vez de {player_atual.nome}")
         time.sleep(2.5)
-        rodada(j2)
+        rodada(player_atual)
         vez -=1
+        rodadas += 1
 
 if __name__ == "__main__":
     while True:
