@@ -3,8 +3,6 @@ import os
 import time
 from recursos import itens_pendentes
 
-def limpar_terminal():
-    os.system('cls' if os.name == 'nt' else 'clear')
 
 def mina(jogador):
     print("Cidadão: Rei! eu achei esta pequena quantia de ouro e gostaria de dividir com o reino!")
@@ -137,7 +135,7 @@ eventos_escolha = [pandemia, demonio]
 def random_evento_obg(jogador):
     evento_escolhido = random.choice(eventos_obg)
     evento_escolhido(jogador)
-
+        
 def random_evento_escolha(jogador):
     evento_escolhido = random.choice(eventos_escolha)
     evento_escolhido(jogador)
