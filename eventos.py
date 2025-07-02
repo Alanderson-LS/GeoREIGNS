@@ -1,8 +1,12 @@
 import random
 import os
 import time
+import pygame
 from recursos import itens_pendentes
 
+
+
+###eventos jogaveis pelo terminal
 
 def mina(jogador):
     print("Cidadão: Rei! eu achei esta pequena quantia de ouro e gostaria de dividir com o reino!")
@@ -139,3 +143,5 @@ def random_evento_obg(jogador):
 def random_evento_escolha(jogador):
     evento_escolhido = random.choice(eventos_escolha)
     evento_escolhido(jogador)
+
+###eventos que rodam no pygame
