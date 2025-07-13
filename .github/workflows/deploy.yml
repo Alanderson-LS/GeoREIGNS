@@ -1,4 +1,4 @@
-ame: Build & Deploy pygbag
+name: Build & Deploy pygbag
 
 on:
   push:
