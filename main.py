@@ -222,7 +222,6 @@ async def epidemia_visual(surface, jogador, personagem="Médico", callback=None,
         callback()
 
 async def demonio_visual(surface, jogador, personagem="Demônio", callback=None, fundo=None, status=None):
-    """Evento opcional: demônio"""
     global mensagem_atual
     mensagem_atual = f"{personagem}: HAHAHA, rei, seus dias estão contados! Lhe trago uma proposta:"
     
@@ -341,8 +340,11 @@ async def main():
                 if bot_rect.collidepoint(event.pos):
                     estado_tela = EST_JOGO
 
-            elif event.type == pygame.KEYDOWN and estado_tela == EST_JOGO:
-                if event.key == pygame.K_SPACE and esperando_espaco:
+            elif (event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN) and estado_tela == EST_JOGO:
+                if esperando_espaco and (
+                (event.type == pygame.KEYDOWN and pygame.K_SPACE) or
+                (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1)
+                        ): 
                     if not evento_opcional_executado:
                         evento_opcional_executado = True
                         evento_opc = random.choice(eventos_opcionais)
