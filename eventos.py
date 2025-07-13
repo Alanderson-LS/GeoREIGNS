@@ -58,17 +58,11 @@ def dialogo(surface, mensagem, pos=(200, 25), caixa_path="imagens/personagens/ca
 
 def mina_visual(jogador, personagem="Cidadão"):
     jogador.dinheiro += 5
-    return {
-        "mensagem": f"{personagem}: Rei! Encontrei ouro e desejo dividir com o reino (+5 dinheiro)",
-        "imagem": "imagens/personagens/campones1.png"
-    }
+    return f"{personagem}: Rei! Encontrei ouro e desejo dividir com o reino (+5 dinheiro)"
 
 def furto_visual(jogador, personagem="Guarda"):
     jogador.dinheiro -= 5
-    return {
-        "mensagem": f"{personagem}: Rei, houve um furto no tesouro! (-5 dinheiro)",
-        "imagem": "imagens/personagens/campones2.png"
-    }
+    return f"{personagem}: Rei, houve um furto no tesouro! (-5 dinheiro)"
 
 def mostrar_evento_com_cartas(surface, jogador, mensagem, personagem_img, callback_sim, callback_nao, fundo, status):
     global arco
