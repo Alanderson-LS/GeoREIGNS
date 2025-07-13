@@ -343,7 +343,8 @@ async def main():
             elif (event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN) and estado_tela == EST_JOGO:
                 if esperando_espaco and (
                 (event.type == pygame.KEYDOWN and pygame.K_SPACE) or
-                (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1)
+                (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1) or
+                (event.type == pygame.FINGERDOWN)
                         ): 
                     if not evento_opcional_executado:
                         evento_opcional_executado = True
