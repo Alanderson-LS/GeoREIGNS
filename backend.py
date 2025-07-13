@@ -1,7 +1,6 @@
 import os
 import time
 import random
-from eventos import random_evento_escolha, random_evento_obg
 from recursos import itens_pendentes, limpar_terminal
 
 CATALOGO_PAISES = {

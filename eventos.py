@@ -1,23 +1,37 @@
 import pygame
 import random
-import time 
+import math
+import sys
 from recursos import itens_pendentes
 
 FONT = None
+
+movimento_vertical = 10
+movimento_horizontal = 5
+arco = 0
+
+class Carta:
+    def __init__(self, x, y, imagem, callback):
+        self.image = imagem
+        self.rect = self.image.get_rect(center=(x, y))
+        self.callback = callback
+        self.original_image = imagem.copy()
+    
+    def desenhar(self, surface):
+        surface.blit(self.image, self.rect)
+
+    def is_clicked(self, pos):
+        return self.rect.collidepoint(pos)
+    
+    def atualizar_posicao(self, x, y):
+        self.rect.center = (x, y)
 
 def init(font_path="fonte/MedievalSharp.ttf", font_size=16):
     global FONT
     pygame.font.init()
     FONT = pygame.font.Font(font_path, font_size)
 
-def dialogo(
-    surface,
-    mensagem,
-    pos=(200, 25),
-    caixa_path="imagens/personagens/caixa_dialogo.png",
-    cor_texto=(0, 0, 0),
-    max_chars=40,
-):
+def dialogo(surface, mensagem, pos=(200, 25), caixa_path="imagens/personagens/caixa_dialogo.png", cor_texto=(0, 0, 0), max_chars=40):
     caixa_img = pygame.image.load(caixa_path).convert_alpha()
     w, h = surface.get_size()
     caixa_img = pygame.transform.scale(caixa_img, (w // 2, h // 2))
@@ -42,162 +56,98 @@ def dialogo(
         surface.blit(img, (x, y))
         y += img.get_height() + 4
 
-def mina(jogador):
-    print(
-        "Cidadão: Rei! eu achei esta pequena quantia de ouro e gostaria de dividir com o reino!"
-    )
-    print(" (+5 dinheiro)")
-    jogador.dinheiro += 5
-    time.sleep(3)
-    print(f"Status de {jogador.nome}({jogador.pais}): ")
-    print(f"Saude: {jogador.saude}")
-    print(f"Satisfação da população: {jogador.satisfacao}")
-    print(f"Dinheiro: {jogador.dinheiro}")
-    time.sleep(5)
-
-
-def furto(jogador):
-    print(
-        "Guarda: Rei, identificamos um ladrão, mas não conseguimos impedir completamente o furto"
-    )
-    print(" (-5 dinheiro)")
-    jogador.dinheiro -= 5
-    time.sleep(3)
-    print(f"Status de {jogador.nome}({jogador.pais}): ")
-    print(f"Saude: {jogador.saude}")
-    print(f"Satisfação da população: {jogador.satisfacao}")
-    print(f"Dinheiro: {jogador.dinheiro}")
-    time.sleep(5)
-
-
-eventos_obg = [mina, furto]
-
-
-def pandemia(jogador):
-    print(
-        "Médico: Atenção, rei! Nosso reino está sofrendo uma pandemia, o senhor precisa investir mais na saúde! (S/N)"
-    )
-    while True:
-        resp = input().strip().upper()
-        if resp == "S":
-            time.sleep(5)
-            print("Médico: Muito obrigado, rei!")
-            jogador.dinheiro -= 20
-            jogador.saude += 10
-            jogador.satisfacao += 20
-            time.sleep(5)
-            print(f"Status de {jogador.nome}({jogador.pais}): ")
-            print(f"Saude: {jogador.saude}")
-            print(f"Satisfação da população: {jogador.satisfacao}")
-            print(f"Dinheiro: {jogador.dinheiro}")
-            break
-        elif resp == "N":
-            time.sleep(5)
-            print("Médico: Pessoas poderão morrer com sua escolha.")
-            jogador.saude -= 10
-            jogador.satisfacao -= 20
-            time.sleep(5)
-            print(f"Status de {jogador.nome}({jogador.pais}): ")
-            print(f"Saude: {jogador.saude}")
-            print(f"Satisfação da população: {jogador.satisfacao}")
-            print(f"Dinheiro: {jogador.dinheiro}")
-            break
-        else:
-            print("Por favor, digite apenas S ou N")
-
-
-def demonio(jogador):
-    print("Demônio: HAHAHA, rei, seus dias de reinado estão contados!")
-    time.sleep(1)
-    print(
-        "Demônio: Lhe ofereço uma proposta, você pode rolar meu dado, mas números baixos contem coisas negativas, números altos podem te ajudar"
-    )
-    time.sleep(1)
-    print("Demônio: Iai, temos um acordo ou está tremendo demais? ")
-    print("responda com S/N")
-    while True:
-        resp = input().strip().upper()
-        if resp == "S":
-            time.sleep(2)
-            print("Demônio: Vejo que você tem muita coragem, não? Vamos ver o que o dado nos diz")
-            dado = random.randint(1, 6)
-            if dado in (1, 2):
-                print(f"Demônio: Ora, um {dado}, você tem bastante azar, HAHAHAHA")
-                val1 = random.randint(15, 20) if dado == 1 else random.randint(10, 15)
-                val2 = random.randint(15, 20) if dado == 1 else random.randint(10, 15)
-                jogador.saude -= val1
-                jogador.dinheiro -= val2
-                print(f"Você perdeu {val1} de saúde e {val2} de dinheiro")
-            elif dado in (3, 4):
-                print(f"Demônio: Olha o que nós temos, {dado}, sorte e azar em equilíbrio.")
-                val1 = random.randint(5, 10)
-                val2 = random.randint(5, 10)
-                if dado == 3:
-                    jogador.saude -= val1
-                    jogador.dinheiro -= val2
-                    print(f"Você perdeu {val1} de saúde e {val2} de dinheiro")
-                else:
-                    jogador.saude += val1
-                    jogador.dinheiro += val2
-                    print(f"Você ganhou {val1} de saúde e {val2} de dinheiro")
-            else:
-                print(
-                    f"Demônio: O QUE?? UM {dado}??? Você tem muita sorte, mas eu voltarei!"
-                )
-                if dado == 5:
-                    val1 = random.randint(15, 20)
-                    val2 = random.randint(15, 20)
-                    jogador.saude += val1
-                    jogador.dinheiro += val2
-                    print(f"Você ganhou {val1} de saúde e {val2} de dinheiro")
-                else:
-                    print("Você ganhou um exército de uso único!")
-                    print(
-                        "Na aba 'itens' você pode usá-lo para saquear seu inimigo, e então você perderá este item"
-                    )
-                    itens_pendentes.append("exercito")
-            break
-        elif resp == "N":
-            time.sleep(2)
-            print("Demônio: Covarde! Nenhum status foi alterado.")
-            break
-        else:
-            print("Por favor, digite apenas S ou N")
-
-
-eventos_escolha = [pandemia, demonio]
-
-
-def random_evento_obg(jogador):
-    random.choice(eventos_obg)(jogador)
-
-
-def random_evento_escolha(jogador):
-    random.choice(eventos_escolha)(jogador)
-
 def mina_visual(jogador, personagem="Cidadão"):
-    """Altera status e DEVOLVE a fala para o pygame exibir."""
     jogador.dinheiro += 5
-    return f"{personagem}: Rei! Encontrei ouro e desejo dividir com o reino (+5 dinheiro)"
+    return {
+        "mensagem": f"{personagem}: Rei! Encontrei ouro e desejo dividir com o reino (+5 dinheiro)",
+        "imagem": "imagens/personagens/campones1.png"
+    }
 
 def furto_visual(jogador, personagem="Guarda"):
     jogador.dinheiro -= 5
-    return f"{personagem}: Rei, houve um furto no tesouro! (-5 dinheiro)"
+    return {
+        "mensagem": f"{personagem}: Rei, houve um furto no tesouro! (-5 dinheiro)",
+        "imagem": "imagens/personagens/campones2.png"
+    }
 
-def pandemia_visual(surface, jogador, personagem="Médico", callback=None):
-    mensagem = f"{personagem}: Atenção, rei! Nosso reino sofre uma pandemia, precisa investir na saúde! (Clique SIM ou NÃO)"
-    dialogo(surface, mensagem)
+def mostrar_evento_com_cartas(surface, jogador, mensagem, personagem_img, callback_sim, callback_nao, fundo, status):
+    global arco
+    img_sim = pygame.image.load("imagens/cartas/carta_sim.png")
+    img_nao = pygame.image.load("imagens/cartas/carta_nao.png")
+    tamanho = (100, 150)
+    img_sim = pygame.transform.scale(img_sim, tamanho)
+    img_nao = pygame.transform.scale(img_nao, tamanho)
+    
+    base_x_sim = 70
+    base_y_sim = 400
+    base_x_nao = 730
+    base_y_nao = 450
+    
+    carta_sim = Carta(base_x_sim, base_y_sim, img_sim, callback_sim)
+    carta_nao = Carta(base_x_nao, base_y_nao, img_nao, callback_nao)
+    
+    clock = pygame.time.Clock()
+    esperando_resposta = True
+    
+    while esperando_resposta:
+        arco += 0.05
+        
+        offset_y = math.sin(arco) * movimento_vertical
+        offset_x = math.cos(arco) * movimento_horizontal
+        
+        carta_sim.atualizar_posicao(base_x_sim + offset_x, base_y_sim + offset_y)
+        carta_nao.atualizar_posicao(base_x_nao - offset_x, base_y_nao - offset_y)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if carta_sim.is_clicked(event.pos):
+                    carta_sim.callback()
+                    esperando_resposta = False
+                elif carta_nao.is_clicked(event.pos):
+                    carta_nao.callback()
+                    esperando_resposta = False
+        
+        surface.blit(fundo, (0, 0))
+        status(surface)
+        
+        dialogo(surface, mensagem)
+        surface.blit(personagem_img, (120, 300))
+        carta_sim.desenhar(surface)
+        carta_nao.desenhar(surface)
+        
+        pygame.display.flip()
+        clock.tick(60)
 
-    pandemia_visual.callback = callback
+def epidemia_visual(surface, jogador, personagem="Médico", callback=None, fundo=None, status=None):
+    mensagem = f"{personagem}: Atenção, rei! Nosso reino sofre uma epidemia, precisa investir na saúde!"
+    img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+    mostrar_evento_com_cartas(
+        surface, jogador, mensagem, img_personagem,
+        lambda: resposta_epidemia(jogador, True),
+        lambda: resposta_epidemia(jogador, False),
+        fundo,
+        status
+    )
+    if callback:
+        callback()
 
+def demonio_visual(surface, jogador, personagem="Demônio", callback=None, fundo=None, status = None):
+    mensagem = f"{personagem}: HAHAHA, rei, seus dias estão contados! Lhe trago uma proposta:"
+    img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+    mostrar_evento_com_cartas(
+        surface, jogador, mensagem, img_personagem,
+        lambda: resposta_demonio(jogador, True),
+        lambda: resposta_demonio(jogador, False),
+        fundo,
+        status
+    )
+    if callback:
+        callback()
 
-def demonio_visual(surface, jogador, personagem="Demônio", callback=None):
-    mensagem = f"{personagem}: HAHAHA, rei, seus dias estão contados! Aceita meu desafio? (Clique SIM ou NÃO)"
-    dialogo(surface, mensagem)
-    demonio_visual.callback = callback
-
-
-def resposta_pandemia(jogador, resposta):
+def resposta_epidemia(jogador, resposta):
     if resposta:
         jogador.dinheiro -= 20
         jogador.saude += 10
@@ -205,7 +155,6 @@ def resposta_pandemia(jogador, resposta):
     else:
         jogador.saude -= 10
         jogador.satisfacao -= 20
-
 
 def resposta_demonio(jogador, resposta):
     if resposta:
@@ -219,11 +168,6 @@ def resposta_demonio(jogador, resposta):
         else:
             jogador.saude += 15
             jogador.dinheiro += 15
-    else:
-        pass
 
-eventos_escolha_visuais = [
-    (pandemia_visual, resposta_pandemia),
-    (demonio_visual, resposta_demonio),
-]
-
+eventos_obrigatorios = [mina_visual, furto_visual]
+eventos_opcionais = [epidemia_visual, demonio_visual]
