@@ -60,6 +60,7 @@ class Jogador:
         self.exercito = ficha["exercito"]
         self.tecnologia = ficha["tecnologia"]
         self.religiosidade = ficha["religiosidade"]
+        self.esta_derrotado = False
 
 
 WIDTH, HEIGHT = 800, 600
@@ -67,10 +68,12 @@ FPS = 60
 WINDOW_NAME = "Teste GeoREIGNS"
 FUNDO_MENU = "imagens/bg/fundo_base_intro.jpeg"
 FUNDO_JOGO = "imagens/bg/castelo_interno.png"
+MAX_ROUNDS_LIMIT = 20
 
 EST_MENU = "MENU"
 EST_JOGO = "JOGO"
 EST_CONFIG = "CONFIG"
+EST_FIM_JOGO = "FIM_JOGO"
 estado_tela = EST_MENU
 
 players = [
@@ -267,7 +270,8 @@ async def mostrar_dialogo_completo(surface, jogador, mensagens: list[str], fundo
         waiting_for_space = True
         while waiting_for_space:
             surface.blit(fundo, (0, 0))
-            status_callback(surface)
+            if status_callback:
+                status_callback(surface)
             if personagem_img:
                 surface.blit(personagem_img, personagem_pos)
             dialogo(surface, msg)
@@ -364,16 +368,15 @@ async def mostrar_evento_com_cartas(surface, jogador, mensagens: list[str], pers
     if resultado_mensagem:
         await mostrar_dialogo_completo(surface, jogador, [resultado_mensagem], fundo, status_callback, personagem_img)
 
-    
-
 async def mina_visual(surface, jogador, fundo=None, status=None):
     personagem = "Minerador"
+    ganho = random.randint(3, 7)
     mensagens = [
-        f"{personagem}: Rei, encontrei esta pequena quantia de ouro!",
-        "Decidi contribuir para o reino.",
-        "Seu dinheiro aumentou em 5 unidades! (+5 dinheiro)"
+        f"{personagem}: Rei, encontrei esta pequena quantia de ouro enquanto minerava!",
+        "Como agradicmento pelo seu reinado, decidi contribuir para o reino.",
+        f"(+{ganho} dinheiro)"
     ]
-    jogador.dinheiro += 5
+    jogador.dinheiro += ganho
     
     try:
         img_personagem = pygame.image.load("imagens/personagens/minerador.png")
@@ -388,9 +391,9 @@ async def furto_visual(surface, jogador, fundo=None, status=None):
     personagem = "Guarda"
     dinheiro = random.randint(3, 7)
     mensagens = [
-        f"{personagem}: Rei, lamento informar, mas houve um furto no tesouro.",
+        f"{personagem}: Rei, lamento informar, mas houve um pequeno furto no tesouro.",
         "Perdemos algumas moedas importantes.",
-        f"Seu dinheiro diminuiu em 5 unidades! (-{dinheiro} dinheiro)"
+        f"(-{dinheiro} dinheiro)"
     ]
     jogador.dinheiro -= dinheiro
     
@@ -404,20 +407,20 @@ async def furto_visual(surface, jogador, fundo=None, status=None):
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
 
 async def boa_colheita_visual(surface, jogador, fundo=None, status=None):
-    personagem = random.choice(["Camponês Feliz", "Camponesa Grata"])
+    personagem = "Camponês Feliz"
     dinheiro_ganho = random.randint(7, 12)
     satisfacao_ganha = random.randint(5, 10)
     mensagens = [
         f"{personagem}: Ótima notícia, Majestade! Tivemos uma colheita abundante este ano!",
         "Isso significa mais riquezas e felicidade para o povo!",
         f"Seu dinheiro aumentou em {dinheiro_ganho} unidades! (+{dinheiro_ganho} dinheiro)",
-        f"A satisfação do povo aumentou em {satisfacao_ganha} pontos! (+{satisfacao_ganha} satisfação)"
+        f"A alegria do povo aumentou em {satisfacao_ganha} pontos! (+{satisfacao_ganha} satisfação)"
     ]
     jogador.dinheiro += dinheiro_ganho
     jogador.satisfacao += satisfacao_ganha
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones_feliz.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
         img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
@@ -426,9 +429,9 @@ async def boa_colheita_visual(surface, jogador, fundo=None, status=None):
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
 
 async def praga_na_colheita_visual(surface, jogador, fundo=None, status=None):
-    personagem = random.choice(["Camponês Desesperado", "Camponesa Preocupada"])
-    dinheiro_perdido = random.randint(8, 15)
-    satisfacao_perdida = random.randint(10, 15)
+    personagem = ("Camponês Desesperado")
+    dinheiro_perdido = random.randint(6, 11)
+    satisfacao_perdida = random.randint(7, 12)
     mensagens = [
         f"{personagem}: Perdão, Majestade, mas uma praga atingiu nossas plantações!",
         "A colheita foi terrível, e o povo está faminto.",
@@ -439,15 +442,15 @@ async def praga_na_colheita_visual(surface, jogador, fundo=None, status=None):
     jogador.satisfacao -= satisfacao_perdida
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones_preocupado.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (150, 100, 100), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
 
-async def nova_mina_visual(surface, jogador, fundo=None, status=None):
+async def nova_mina_visual(surface, jogador, fundo=None, status=None):  
     personagem = "Mestre de Minas"
     dinheiro_ganho = random.randint(10, 20)
     mensagens = [
@@ -460,11 +463,11 @@ async def nova_mina_visual(surface, jogador, fundo=None, status=None):
     jogador.tecnologia += 5
     
     try:
-        img_personagem = "imagens/personagens/mestre_mina.png"
+        img_personagem = pygame.image.load("imagens/personagens/mestre_mina.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (200, 180, 100), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/minerador.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
 
@@ -482,11 +485,11 @@ async def desabamento_mina_visual(surface, jogador, fundo=None, status=None):
     jogador.saude -= saude_perdida
     
     try:
-        img_personagem = "imagens/personagens/minerador.png"
+        img_personagem = pygame.image.load("imagens/personagens/minerador_ferido.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (120, 80, 80), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/minerador.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
 
@@ -504,10 +507,10 @@ async def peregrinacao_religiosa_visual(surface, jogador, fundo=None, status=Non
     jogador.satisfacao += satisfacao_ganha
     
     try:
-        img_personagem = pygame.image.load("imagens/personagens/sacerdote.png") # Exemplo, se tiver um. Se não, use camponês.
+        img_personagem = pygame.image.load("imagens/personagens/sacerdote.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
@@ -526,7 +529,7 @@ async def fanatismo_religioso_visual(surface, jogador, fundo=None, status=None):
     jogador.dinheiro -= dinheiro_perdido
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
         img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
@@ -548,11 +551,11 @@ async def avanco_tecnologico_visual(surface, jogador, fundo=None, status=None):
     jogador.dinheiro -= dinheiro_gasto
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/inventor.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/inventor.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (100, 100, 200), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
 
@@ -570,11 +573,11 @@ async def falha_infraestrutura_visual(surface, jogador, fundo=None, status=None)
     jogador.dinheiro -= dinheiro_perdido
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/inventor.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (150, 150, 150), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
 
@@ -595,7 +598,7 @@ async def recrutamento_exercito_visual(surface, jogador, fundo=None, status=None
         img_personagem = pygame.image.load("imagens/personagens/guerreiro.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
@@ -614,7 +617,7 @@ async def desercoes_exercito_visual(surface, jogador, fundo=None, status=None):
         img_personagem = pygame.image.load("imagens/personagens/guarda.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
@@ -680,7 +683,6 @@ def resposta_demonio(jogador, resposta):
     else:
         return "Você recusou a proposta do demônio. O reino segue seu curso normal." 
 
-
 async def demonio_visual(surface, jogador, fundo=None, status=None):
     personagem = "Demônio"
     mensagens = [
@@ -742,7 +744,7 @@ async def festival_reino_visual(surface, jogador, fundo=None, status=None):
     ]
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones_feliz.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones_feliz.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
         img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
@@ -777,15 +779,15 @@ async def pedido_construcao_visual(surface, jogador, fundo=None, status=None):
     ]
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/mestre_mina.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/mestre_mina.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (180, 180, 180), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     def resposta_construcao(jogador, resposta):
         if resposta:
-            custo = random.randint(20, 30)
+            custo = random.randint(10, 20)
             ganho_saude = random.randint(5, 10)
             ganho_tecnologia = random.randint(5, 10)
             jogador.dinheiro -= custo
@@ -807,15 +809,15 @@ async def disputa_fronteira_visual(surface, jogador, fundo=None, status=None):
     personagem = "General"
     mensagens = [
         f"{personagem}: Majestade, há uma disputa de terras na fronteira com um reino vizinho.",
-        "Podemos enviar tropas para afirmar nossa soberania ou tentar uma negociação pacífica.",
-        "O que devemos fazer?"
+        "Queremos enviar tropas para mostrar soberania, mas caso não seja de sua vontade, buscaremos um acordo de paz.",
+        "Devemos enviar nossas tropas?"
     ]
     
     try:
         img_personagem = pygame.image.load("imagens/personagens/guerreiro.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     def resposta_fronteira(jogador, resposta):
@@ -826,10 +828,10 @@ async def disputa_fronteira_visual(surface, jogador, fundo=None, status=None):
             if random.random() < 0.6:
                 jogador.exercito -= perda_exercito
                 jogador.dinheiro += ganho_dinheiro
-                return f"Nossas tropas afirmaram a fronteira! (-{perda_exercito} exército, +{ganho_dinheiro} dinheiro)" if ganho_dinheiro > 0 else f"Nossas tropas afirmaram a fronteira, mas com perdas. (-{perda_exercito} exército)"
+                return f"Nossas tropas afirmaram a fronteira! (-{perda_exercito} exército, +{ganho_dinheiro} dinheiro)" if ganho_dinheiro > 0 else f"Nossas tropas afirmaram a fronteira, mas com perdas. (-{perda_exercito} exército, -{perda_dinheiro} dinheiro)"
             else:
                 jogador.exercito -= perda_exercito * 2
-                return f"A campanha militar falhou! Perdemos mais tropas. (-{perda_exercito * 2} exército)"
+                return f"A campanha militar falhou! Perdemos mais tropas. (-{perda_exercito * 2} exército, ao menos o conflito abaixou.)"
         else:
             ganho_satisfacao = random.randint(5, 10)
             if random.random() < 0.7:
@@ -851,8 +853,8 @@ async def disputa_fronteira_visual(surface, jogador, fundo=None, status=None):
 async def oferta_mago_visual(surface, jogador, fundo=None, status=None):
     personagem = "Mago Erudito"
     mensagens = [
-        f"{personagem}: Saudações, Majestade! Posso oferecer-lhe um conhecimento arcano em troca de apoio.",
-        "Isso pode impulsionar nossa tecnologia, mas exigirá fundos e a tolerância de minha magia...",
+        f"{personagem}: Saudações, Majestade! Vim de uma montanha distante oferecer-lhe um conhecimento arcano em troca de apoio.",
+        "Isso pode impulsionar sua tecnologia, mas exigirá fundos e a tolerância de minha magia...",
         "Você aceita a ajuda do mago?"
     ]
     
@@ -860,7 +862,7 @@ async def oferta_mago_visual(surface, jogador, fundo=None, status=None):
         img_personagem = pygame.image.load("imagens/personagens/mago.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     def resposta_mago(jogador, resposta):
@@ -895,7 +897,7 @@ async def crise_moral_visual(surface, jogador, fundo=None, status=None):
         img_personagem = pygame.image.load("imagens/personagens/sacerdote.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     def resposta_moral(jogador, resposta):
@@ -910,9 +912,11 @@ async def crise_moral_visual(surface, jogador, fundo=None, status=None):
         else:
             perda_religiosidade = random.randint(10, 15)
             perda_satisfacao = random.randint(8, 12)
+            poupa_dinheiro = random.randint(8, 15)
             jogador.religiosidade -= perda_religiosidade
             jogador.satisfacao -= perda_satisfacao
-            return f"Você ignorou o problema. A moral do povo caiu. (-{perda_religiosidade} religiosidade, -{perda_satisfacao} satisfação)"
+            jogador.dinheiro += poupa_dinheiro
+            return f"Você ignorou o problema. A moral do povo caiu. (-{perda_religiosidade} religiosidade, -{perda_satisfacao} satisfação, +{poupa_dinheiro} dinheiro economizado)"
 
     await mostrar_evento_com_cartas(
         surface, jogador, mensagens, img_personagem,
@@ -931,11 +935,11 @@ async def descoberta_cientifica_visual(surface, jogador, fundo=None, status=None
     ]
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/cientista.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/cientista.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (100, 150, 200), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     def resposta_cientifica(jogador, resposta):
         if resposta:
@@ -963,32 +967,30 @@ async def bandidos_nas_estradas_visual(surface, jogador, fundo=None, status=None
     personagem = "Caminhante Assustado"
     mensagens = [
         f"{personagem}: Ajuda, Majestade! Bandidos estão atacando caravanas nas estradas!",
-        "Podemos enviar a guarda para patrulhar, ou fortificar as cidades e proteger o comércio lá dentro.",
-        "Qual será a abordagem?"
+        "Precisamos de investimento em segurança com emergência!",
+        "Qual a sua resposta? "
     ]
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones_preocupado.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (150, 100, 100), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     def resposta_bandidos(jogador, resposta):
         if resposta:
             custo = random.randint(10, 15)
-            ganho_dinheiro = random.randint(5, 10)
             ganho_satisfacao = random.randint(5, 10)
             jogador.dinheiro -= custo
-            jogador.dinheiro += ganho_dinheiro
             jogador.satisfacao += ganho_satisfacao
-            return f"Você enviou a guarda! (-{custo} dinheiro, +{ganho_dinheiro} dinheiro, +{ganho_satisfacao} satisfação)"
+            return f"Você fortaleceu a segurança (-{custo} dinheiro, +{ganho_satisfacao} satisfação)"
         else:
-            custo = random.randint(8, 12)
-            perda_dinheiro = random.randint(5, 10)
-            jogador.dinheiro -= custo
-            jogador.dinheiro -= perda_dinheiro
-            return f"Você fortificou as cidades. (-{custo} dinheiro, -{perda_dinheiro} dinheiro extra por comércio afetado)"
+            perda_satisfacao = random.randint(8, 12)
+            poupa_dinheiro = random.randint(5, 10)
+            jogador.dinheiro += poupa_dinheiro
+            jogador.satisfacao -= perda_satisfacao
+            return f"Seu povo corre risco. (+{poupa_dinheiro} dinheiro poupado, -{perda_satisfacao} satisfação de sua população)"
 
     await mostrar_evento_com_cartas(
         surface, jogador, mensagens, img_personagem,
@@ -1003,16 +1005,15 @@ async def seca_prolongada_visual(surface, jogador, fundo=None, status=None):
     mensagens = [
         f"{personagem}: Oh, Majestade, a seca está castigando nossas terras!",
         "As colheitas estão em risco, e o povo sofre com a falta de água.",
-        "Devemos usar reservas de emergência para irrigação, ou rezar por chuva?"
+        "Devemos usar reservas de emergência para irrigação? "
     ]
     
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/anciao.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (200, 150, 50), (0, 0, 100, 200))
-
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     def resposta_seca(jogador, resposta):
         if resposta:
             custo = random.randint(15, 25)
@@ -1025,11 +1026,10 @@ async def seca_prolongada_visual(surface, jogador, fundo=None, status=None):
         else: 
             perda_saude = random.randint(10, 20)
             perda_satisfacao = random.randint(15, 25)
-            perda_dinheiro = random.randint(5, 10) 
+            poupa_dinheiro = random.randint(15, 25) 
             jogador.saude -= perda_saude
             jogador.satisfacao -= perda_satisfacao
-            jogador.dinheiro -= perda_dinheiro
-            return f"A seca persiste. A saúde e a satisfação do povo pioraram. (-{perda_saude} saúde, -{perda_satisfacao} satisfação, -{perda_dinheiro} dinheiro)"
+            return f"A seca persiste. A saúde e a satisfação do povo pioraram. (-{perda_saude} saúde, -{perda_satisfacao} satisfação, ={poupa_dinheiro} dinheiro poupado)"
 
     await mostrar_evento_com_cartas(
         surface, jogador, mensagens, img_personagem,
@@ -1043,26 +1043,23 @@ async def refugiados_guerra_visual(surface, jogador, fundo=None, status=None):
     personagem = "Pai de Família Desabrigado"
     mensagens = [
         f"{personagem}: Por favor, Majestade, permita-nos entrar! Fugimos da guerra no reino vizinho.",
-        "Receber os refugiados pode trazer mão de obra, mas também exigirá recursos e pode gerar tensão.",
+        "Ajudaremos com nossa mão de obra, mas precisamos de um lar e alimentação!",
         "Você abrirá as fronteiras do reino?"
     ]
-    
     try:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones_preocupado.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.Surface((100, 200), pygame.SRCALPHA)
-        pygame.draw.rect(img_personagem, (100, 100, 100), (0, 0, 100, 200))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
 
     def resposta_refugiados(jogador, resposta):
         if resposta: 
             custo = random.randint(10, 20)
-            ganho_dinheiro = random.randint(5, 10) 
             ganho_satisfacao = random.randint(5, 10)
             jogador.dinheiro -= custo
-            jogador.dinheiro += ganho_dinheiro
             jogador.satisfacao += ganho_satisfacao
-            return f"Você acolheu os refugiados! (-{custo} dinheiro, +{ganho_dinheiro} dinheiro, +{ganho_satisfacao} satisfação)"
+            return f"Você acolheu os refugiados! (-{custo} dinheiro, +{ganho_satisfacao} satisfação)"
         else:
             perda_satisfacao = random.randint(5, 10)
             perda_religiosidade = random.randint(3, 7)
@@ -1090,18 +1087,17 @@ async def torneio_reino_visual(surface, jogador, fundo=None, status=None):
         img_personagem = pygame.image.load("imagens/personagens/guerreiro.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
     except:
-        img_personagem = pygame.image.load(random.choice(["imagens/personagens/campones1.png", "imagens/personagens/campones2.png"]))
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
         img_personagem = pygame.transform.scale(img_personagem, (100, 200))
-
     def resposta_torneio(jogador, resposta):
         if resposta: 
-            custo = random.randint(15, 25)
+            custo = random.randint(10, 20)
             ganho_exercito = random.randint(5, 10) 
             ganho_satisfacao = random.randint(15, 25)
             jogador.dinheiro -= custo
             jogador.exercito += ganho_exercito
             jogador.satisfacao += ganho_satisfacao
-            return f"O torneio foi magnífico! (-{custo} dinheiro, +{ganho_exercito} exército, +{ganho_satisfacao} satisfação)"
+            return f"O torneio foi espetacular, o povo ficou alegre, e os nossos soldados se fortaleceram! (-{custo} dinheiro, +{ganho_exercito} exército, +{ganho_satisfacao} satisfação)"
         else:
             perda_satisfacao = random.randint(5, 10)
             jogador.satisfacao -= perda_satisfacao
@@ -1114,14 +1110,69 @@ async def torneio_reino_visual(surface, jogador, fundo=None, status=None):
         fundo,
         status
     )
+
+async def game_over_visual(surface, jogador, mensagem_final, fundo=None, status=None):
+    personagem = "Arauto Real"
+    mensagens = [
+        f"{personagem}: Atenção, Majestade! O destino do reino foi selado!",
+        mensagem_final,
+        "Pressione [ESC] para sair ou [ESPAÇO] se ainda tiver algum jogador sobrando."
+    ]
+
+    try:
+        img_personagem = pygame.image.load("imagens/personagens/guerreiro.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
+    except:
+        img_personagem = pygame.image.load("imagens/personagens/campones1.png")
+        img_personagem = pygame.transform.scale(img_personagem, (100, 200))
+
+    await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, None, img_personagem)
+
+async def checar_condicoes_fim_jogo(surface, jogador_checado, fundo, status):
+    global estado_tela, turno_em_andamento, players, rodada_atual
+
+    mensagem_derrota_individual = ""
     
-    await mostrar_evento_com_cartas(
-        surface, jogador, mensagens, img_personagem,
-        lambda: resposta_demonio(jogador, True),
-        lambda: resposta_demonio(jogador, False),
-        fundo,
-        status
-    )
+    if jogador_checado.dinheiro <= 0:
+        mensagem_derrota_individual = f"O dinheiro de {jogador_checado.nome} zerou! Sem grana, a população não prevalece."
+    elif jogador_checado.saude <= 0:
+        mensagem_derrota_individual = f"A saúde do povo de {jogador_checado.nome} zerou! Uma grande calamidade se abateu."
+    elif jogador_checado.satisfacao <= 0:
+        mensagem_derrota_individual = f"A satisfação do povo de {jogador_checado.nome} zerou! Uma revolução te tirou do poder e colocou um vendedor de bobbie goods no seu lugar."
+    elif jogador_checado.exercito <= 0:
+        mensagem_derrota_individual = f"O exército de {jogador_checado.nome} zerou! Após perceberem a fraqueza, um reino vizinho invadiu sua terra."
+    elif jogador_checado.tecnologia <= 0:
+        mensagem_derrota_individual = f"A tecnologia de {jogador_checado.nome} zerou! Seu povo foi tomado por um país com maiores avanços."
+    elif jogador_checado.religiosidade <= 0:
+        mensagem_derrota_individual = f"A religiosidade de {jogador_checado.nome} zerou! Sem fé, grande parte da população se encontrou sem razão para continuar ali."
+    
+
+    elif jogador_checado.dinheiro >= 100:
+        mensagem_derrota_individual = f"O dinheiro de {jogador_checado.nome} atingiu o máximo! Mas a ganância consumiu o reino, e em seguida foi bombardeado pelos Estragos Unidos"
+    elif jogador_checado.exercito >= 100:
+        mensagem_derrota_individual = f"O exército de {jogador_checado.nome} atingiu o máximo! Mas a tirania militar dominou."
+    elif jogador_checado.tecnologia >= 100:
+        mensagem_derrota_individual = f"A tecnologia de {jogador_checado.nome} atingiu o máximo! Mas a ciência sem controle trouxe o caos."
+    elif jogador_checado.religiosidade >= 100:
+        mensagem_derrota_individual = f"A religiosidade de {jogador_checado.nome} atingiu o máximo! Mas o fanatismo destruiu a razão."
+
+    if mensagem_derrota_individual:
+        jogador_checado.esta_derrotado = True
+        await game_over_visual(surface, jogador_checado, mensagem_derrota_individual, fundo, status)
+
+
+    todos_derrotados = all(p.esta_derrotado for p in players)
+    if todos_derrotados:
+        turno_em_andamento = False
+        estado_tela = EST_FIM_JOGO
+        return True 
+    if rodada_atual > MAX_ROUNDS_LIMIT and player_index == 0:
+        turno_em_andamento = False
+        estado_tela = EST_FIM_JOGO
+        await game_over_visual(surface, players[0], f"O reino atingiu {MAX_ROUNDS_LIMIT} rodadas! O tempo se esgotou.", fundo, status)
+        return True 
+
+    return False 
 
 eventos_obrigatorios = [
     mina_visual, furto_visual,
@@ -1142,19 +1193,57 @@ eventos_opcionais = [
 ]
 
 async def proximo_turno():
-    global player_index, turno_em_andamento
-    turno_em_andamento = True 
-    jogador = players[player_index]
+    global player_index, turno_em_andamento, rodada_atual, estado_tela
+
+    if all(p.esta_derrotado for p in players) or rodada_atual > MAX_ROUNDS_LIMIT:
+        turno_em_andamento = False
+        estado_tela = EST_FIM_JOGO
+        return
+
+    jogador_atual = None
+    jogadores_tentados = 0
+    while jogadores_tentados < len(players):
+        temp_jogador = players[player_index]
+        if not temp_jogador.esta_derrotado:
+            jogador_atual = temp_jogador
+            break
+        alternar_jogador()
+        jogadores_tentados += 1
+
+    if jogador_atual is None:
+        turno_em_andamento = False
+        estado_tela = EST_FIM_JOGO
+        return
     
+    turno_em_andamento = True
+
     evento_obg = random.choice(eventos_obrigatorios)
-    await evento_obg(screen, jogador, fundo=bg_jogo, status=desenhar_status)
-    
-    evento_opc = random.choice(eventos_opcionais)
-    await evento_opc(screen, jogador, fundo=bg_jogo, status=desenhar_status)
-    
+    await evento_obg(screen, jogador_atual, fundo=bg_jogo, status=desenhar_status)
+
+    if await checar_condicoes_fim_jogo(screen, jogador_atual, bg_jogo, desenhar_status):
+
+        if estado_tela == EST_FIM_JOGO:
+            turno_em_andamento = False
+            return
+
+        turno_em_andamento = False
+        alternar_jogador()
+        return
+
+    if not jogador_atual.esta_derrotado:
+        evento_opc = random.choice(eventos_opcionais)
+        await evento_opc(screen, jogador_atual, fundo=bg_jogo, status=desenhar_status)
+        dialogo(screen, "(Fim do turno, passe para o próximo jogador)")
+        pygame.display.flip()
+        await asyncio.sleep(5)
+
+        if await checar_condicoes_fim_jogo(screen, jogador_atual, bg_jogo, desenhar_status):
+            if estado_tela == EST_FIM_JOGO:
+                turno_em_andamento = False
+                return
+
     alternar_jogador()
     turno_em_andamento = False
-
 
 def alternar_jogador():
     global player_index, rodada_atual
@@ -1183,30 +1272,31 @@ def desenhar_status(surface):
         y += img.get_height() + 2
 
 async def main():
-    global estado_tela 
+    global estado_tela
     global bg_menu, bg_jogo, botao_jogar, botao_jogar_rect, screen, FONT
     global botao_confirmar, botao_confirmar_rect, turno_em_andamento
-    
+    global players, rodada_atual, player_index
+
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption(WINDOW_NAME)
     clock = pygame.time.Clock()
-    pygame.key.set_repeat(500, 50) 
+    pygame.key.set_repeat(500, 50)
+
 
     init("fonte/MedievalSharp.ttf", 16)
-
     try:
         bg_menu = carregar_imagem(FUNDO_MENU, (WIDTH, HEIGHT))
     except:
         bg_menu = pygame.Surface((WIDTH, HEIGHT))
         bg_menu.fill((50, 50, 100))
-    
+
     try:
         bg_jogo = carregar_imagem(FUNDO_JOGO, (WIDTH, HEIGHT))
     except:
         bg_jogo = pygame.Surface((WIDTH, HEIGHT))
         bg_jogo.fill((100, 80, 60))
-    
+
     try:
         botao_jogar = carregar_imagem("imagens/botoes/jogar.png", (200, 70))
     except:
@@ -1215,41 +1305,48 @@ async def main():
         pygame.draw.rect(botao_jogar, (0, 0, 0), (0, 0, 200, 100), 3)
         texto = FONT.render("JOGAR", True, (0, 0, 0))
         botao_jogar.blit(texto, (100 - texto.get_width()//2, 50 - texto.get_height()//2))
-    
+
     botao_jogar_rect = botao_jogar.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
 
     config_screen()
 
     running = True
-    
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False
 
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if estado_tela == EST_MENU and botao_jogar_rect.collidepoint(event.pos): 
-                    estado_tela = EST_CONFIG
-                elif estado_tela == EST_CONFIG:
-                    if botao_confirmar_rect.collidepoint(event.pos): 
+            if estado_tela == EST_MENU:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if botao_jogar_rect.collidepoint(event.pos):
+                        
+                        player_index = 0
+                        rodada_atual = 1
+                        turno_em_andamento = False
+                        estado_tela = EST_CONFIG
+            
+            elif estado_tela == EST_CONFIG:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if botao_confirmar_rect.collidepoint(event.pos):
                         player_update()
                         estado_tela = EST_JOGO
                     else:
                         for box in input_boxes:
                             box.handle_event(event)
 
-            elif event.type == pygame.KEYDOWN:
-                if estado_tela == EST_CONFIG:
+                elif event.type == pygame.KEYDOWN:
                     for box in input_boxes:
                         if box.handle_event(event):
                             if event.key == pygame.K_RETURN:
-                                player_update()
+                                
+                                player_update() 
                                 estado_tela = EST_JOGO
-                                break
-                elif estado_tela == EST_JOGO:
-                    if event.key == pygame.K_ESCAPE:
-                        running = False
-        
+                                break          
+      
         if estado_tela == EST_MENU:
             screen.blit(bg_menu, (0, 0))
             screen.blit(botao_jogar, botao_jogar_rect)
@@ -1262,15 +1359,29 @@ async def main():
 
         elif estado_tela == EST_JOGO:
             if not turno_em_andamento:
-                await proximo_turno() 
-            
-            screen.blit(bg_jogo, (0, 0))
-            desenhar_status(screen)
+                if all(p.esta_derrotado for p in players):
+                    estado_tela = EST_FIM_JOGO
+                    jogador_para_exibir_fim = players[0] if players else None
+                    await game_over_visual(screen, jogador_para_exibir_fim, "Todos os líderes foram derrotados! O jogo terminou.", bg_jogo, desenhar_status)
+
+                elif rodada_atual > MAX_ROUNDS_LIMIT:
+                    estado_tela = EST_FIM_JOGO
+                    jogador_para_exibir_fim = players[0] if players else None
+                    await game_over_visual(screen, jogador_para_exibir_fim, f"O reino atingiu {MAX_ROUNDS_LIMIT} rodadas! O tempo se esgotou.", bg_jogo, desenhar_status)
+                else:
+                    await proximo_turno()
+
+            if estado_tela == EST_JOGO:
+                screen.blit(bg_jogo, (0, 0))
+                desenhar_status(screen)
+
+        elif estado_tela == EST_FIM_JOGO:
+            pass 
 
         pygame.display.flip()
-            
-        await asyncio.sleep(0.01) 
-        clock.tick(FPS) 
+
+        await asyncio.sleep(0.01)
+        clock.tick(FPS)
 
     pygame.quit()
     sys.exit()
