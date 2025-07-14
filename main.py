@@ -14,11 +14,12 @@ FUNDO_JOGO = "imagens/bg/castelo_interno.png"
 
 EST_MENU = "MENU"
 EST_JOGO = "JOGO"
+EST_CONFIG = "CONFIG"
 estado_tela = EST_MENU
 
 players = [
-    backend.Jogador("Jogador 1", "Brasil"),
-    backend.Jogador("Jogador 2", "Franca"),
+    backend.Jogador("Jogador 1", "Franca"),
+    backend.Jogador("Jogador 2", "Brasil"),
 ]
 player_index = 0
 rodada_atual = 1
@@ -35,11 +36,80 @@ FONT = None
 bg_menu = None
 bg_jogo = None
 botao_jogar = None
-bot_rect = None
+botao_jogar_rect = None
+
+input_boxes = []
+active_box = None
+textos_jogadores = ["jogador 1", "jogador 2"]
+botao_confirmar = None
+botao_confirmar_rect = None
 
 def carregar_imagem(caminho: str, tam: tuple[int, int]):
     img = pygame.image.load(caminho).convert_alpha()
     return pygame.transform.scale(img, tam)
+
+class InputBox:
+    def __init__(self, x, y, w, h, texto=''):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = pygame.Color('lightskyblue3')
+        self.text = texto
+        self.txt_surface = FONT.render(texto, True, pygame.Color('black'))
+        self.active = False
+        self.cursor_visible = True
+        self.cursor_timer = pygame.time.get_ticks()
+
+    def handle_event(self, evento):
+        if evento.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(evento.pos):
+                self.active = not self.active
+            else:
+                self.active = False
+            self.color = pygame.Color('dodgerblue2') if self.active else pygame.Color('lightskyblue3')
+            if self.active:
+                self.cursor_visible = True
+                self.cursor_timer = pygame.time.get_ticks()
+            return False
+
+        if evento.type == pygame.KEYDOWN:
+            if self.active:
+                if evento.key == pygame.K_RETURN:
+                    return True
+                elif evento.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    pass 
+                self.txt_surface = FONT.render(self.text, True, pygame.Color('black'))
+                self.update_cursor()
+                return False
+
+        if evento.type == pygame.TEXTINPUT:
+            if self.active:
+                self.text += evento.text
+                self.txt_surface = FONT.render(self.text, True, pygame.Color('black'))
+                self.update_cursor()
+                return False
+        return False
+
+    def update(self):  
+        width = max(200, self.txt_surface.get_width() + 10)
+        self.rect.w = width
+        self.update_cursor()
+
+    def update_cursor(self):
+        if self.active and pygame.time.get_ticks() - self.cursor_timer > 500:
+            self.cursor_visible = not self.cursor_visible
+            self.cursor_timer = pygame.time.get_ticks()
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, (255, 255, 255), self.rect)
+        screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+
+        if self.active and self.cursor_visible:
+            cursor_x = self.rect.x + 5 + self.txt_surface.get_width()
+            pygame.draw.line(screen, pygame.Color('black'),
+                             (cursor_x, self.rect.y + 5),
+                             (cursor_x, self.rect.y + self.rect.h - 5), 2)
+        pygame.draw.rect(screen, self.color, self.rect, 2)
 
 class Carta:
     def __init__(self, x, y, imagem, callback):
@@ -64,6 +134,46 @@ def init(font_path="fonte/MedievalSharp.ttf", font_size=16):
         FONT = pygame.font.Font(font_path, font_size)
     except:
         FONT = pygame.font.SysFont(None, font_size)
+
+def config_screen():
+    global input_boxes, active_box, botao_confirmar, botao_confirmar_rect
+
+    input_boxes = [
+        InputBox(WIDTH//2 - 100, HEIGHT//2 - 60, 200, 32, textos_jogadores[0]),
+        InputBox(WIDTH//2 - 100, HEIGHT//2, 200, 32, textos_jogadores[1])
+    ]
+    active_box = None
+
+    try:
+        botao_confirmar = carregar_imagem("imagens/botoes/confirmar.png", (200, 50))
+    except:
+        botao_confirmar = pygame.Surface((200, 50), pygame.SRCALPHA)
+        pygame.draw.rect(botao_confirmar, (100, 200, 100), (0, 0, 200, 50))
+        pygame.draw.rect(botao_confirmar, (0, 0, 0), (0, 0, 200, 50), 2)
+        texto = FONT.render("CONFIRMAR", True, (0, 0, 0))
+        botao_confirmar.blit(texto, (100 - texto.get_width()//2, 25 - texto.get_height()//2))
+    
+    botao_confirmar_rect = botao_confirmar.get_rect(center=(WIDTH//2, HEIGHT//2 + 80))
+
+def player_update():
+    global players
+    for i, box in enumerate(input_boxes):
+        if i < len(players):
+            players[i].nome = box.text if box.text else f"jogador {i+1}"
+
+def config_draw(screen):
+    screen.fill((240, 240, 240))
+
+    titulo = FONT.render("digite os nomes dos jogadores: ", True, (0, 0, 0))
+    screen.blit(titulo, (WIDTH//2 - titulo.get_width()//2, HEIGHT//2 - 120))
+
+    for box in input_boxes:
+        box.draw(screen)
+
+    screen.blit(botao_confirmar, botao_confirmar_rect)
+
+    instrucoes = FONT.render("Clique nas caixas para editar, [ENTER] para confirmar", True, (100, 100, 100))
+    screen.blit(instrucoes, (WIDTH//2 - instrucoes.get_width()//2, HEIGHT//2 + 120))
 
 def dialogo(surface, mensagem, pos=(200, 25), caixa_img=None, cor_texto=(0, 0, 0), max_chars=40):
     if caixa_img is None:
@@ -177,27 +287,16 @@ async def mostrar_evento_com_cartas(surface, jogador, mensagem, personagem_img, 
         await asyncio.sleep(0)
 
 def resposta_epidemia(jogador, resposta):
-
+    global mensagem_atual
     if resposta:
         jogador.dinheiro -= 20
         jogador.saude += 10
         jogador.satisfacao += 20
+        mensagem_atual = "Você investiu na saúde! A epidemia foi controlada."
     else:
         jogador.saude -= 10
         jogador.satisfacao -= 20
-
-def resposta_demonio(jogador, resposta):
-    if resposta:
-        dado = random.randint(1, 6)
-        if dado <= 2:
-            jogador.saude -= 15
-            jogador.dinheiro -= 15
-        elif dado <= 4:
-            jogador.saude -= 5
-            jogador.dinheiro -= 5
-        else:
-            jogador.saude += 15
-            jogador.dinheiro += 15
+        mensagem_atual = "Você ignorou a epidemia. A saúde do reino piorou."
 
 async def epidemia_visual(surface, jogador, personagem="Médico", callback=None, fundo=None, status=None):
     
@@ -242,12 +341,30 @@ async def demonio_visual(surface, jogador, personagem="Demônio", callback=None,
     if callback:
         callback()
 
+def resposta_demonio(jogador, resposta):
+    global mensagem_atual
+    if resposta:
+        dado = random.randint(1, 6)
+        if dado <= 2:
+            jogador.saude -= 15
+            jogador.dinheiro -= 15
+            mensagem_atual = "Você aceitou a proposta do demônio e sofreu grandes perdas!"
+        elif dado <= 4:
+            jogador.saude -= 5
+            jogador.dinheiro -= 5
+            mensagem_atual = "Você aceitou a proposta do demônio e sofreu pequenas perdas."
+        else:
+            jogador.saude += 15
+            jogador.dinheiro += 15
+            mensagem_atual = "Você aceitou a proposta do demônio e, por sorte, obteve ganhos inesperados!"
+    else:
+        mensagem_atual = "Você recusou a proposta do demônio. O reino segue seu curso normal."
+
 
 eventos_obrigatorios = [mina_visual, furto_visual]
 eventos_opcionais = [epidemia_visual, demonio_visual]
 
 def proximo_turno():
-
     global mensagem_atual, esperando_espaco, evento_opcional_executado
     jogador = players[player_index]
     
@@ -282,12 +399,16 @@ def desenhar_status(surface):
 
 async def main():
     global estado_tela, esperando_espaco, evento_opcional_executado
-    global bg_menu, bg_jogo, botao_jogar, bot_rect, screen, FONT
-
+    global bg_menu, bg_jogo, botao_jogar, botao_jogar_rect, screen, FONT
+    global botao_confirmar, botao_confirmar_rect 
+    
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption(WINDOW_NAME)
     clock = pygame.time.Clock()
+    pygame.key.set_repeat(500, 50)
+
+    init("fonte/MedievalSharp.ttf", 16)
 
     try:
         bg_menu = carregar_imagem(FUNDO_MENU, (WIDTH, HEIGHT))
@@ -310,16 +431,63 @@ async def main():
         texto = FONT.render("JOGAR", True, (0, 0, 0))
         botao_jogar.blit(texto, (100 - texto.get_width()//2, 50 - texto.get_height()//2))
     
-    bot_rect = botao_jogar.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    botao_jogar_rect = botao_jogar.get_rect(center=(WIDTH // 2, HEIGHT // 2))
 
-    init("fonte/MedievalSharp.ttf", 16)
+    config_screen()
+
     iniciou_jogo = False
     running = True
 
     while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if estado_tela == EST_MENU and botao_jogar_rect.collidepoint(event.pos): 
+                    estado_tela = EST_CONFIG
+                elif estado_tela == EST_CONFIG:
+                    if botao_confirmar_rect.collidepoint(event.pos): 
+                        player_update()
+                        estado_tela = EST_JOGO
+                    else:
+                        for box in input_boxes:
+                            box.handle_event(event)
+
+            elif event.type == pygame.KEYDOWN:
+                if estado_tela == EST_CONFIG:
+                    for box in input_boxes:
+                        if box.handle_event(event):
+                            if event.key == pygame.K_RETURN:
+                                player_update()
+                                estado_tela = EST_JOGO
+                                break
+                elif estado_tela == EST_JOGO:
+                    if esperando_espaco and event.key == pygame.K_SPACE:
+                        if not evento_opcional_executado:
+                            evento_opcional_executado = True
+                            evento_opc = random.choice(eventos_opcionais)
+                            await evento_opc(screen, players[player_index], fundo=bg_jogo, status=desenhar_status)
+                        else:
+                            esperando_espaco = False
+                            alternar_jogador()
+                    elif event.key == pygame.K_ESCAPE:
+                        running = False
+            
+            elif event.type == pygame.TEXTINPUT:
+                if estado_tela == EST_CONFIG:
+                    for box in input_boxes:
+                        box.handle_event(event)
+
         if estado_tela == EST_MENU:
             screen.blit(bg_menu, (0, 0))
-            screen.blit(botao_jogar, bot_rect)
+            screen.blit(botao_jogar, botao_jogar_rect)
+
+        elif estado_tela == EST_CONFIG:
+            config_draw(screen)
+            for box in input_boxes:
+                box.update()
+                box.draw(screen)
 
         elif estado_tela == EST_JOGO:
             screen.blit(bg_jogo, (0, 0))
@@ -332,30 +500,6 @@ async def main():
 
         pygame.display.flip()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-            elif event.type == pygame.MOUSEBUTTONDOWN and estado_tela == EST_MENU:
-                if bot_rect.collidepoint(event.pos):
-                    estado_tela = EST_JOGO
-
-            elif (event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN) and estado_tela == EST_JOGO:
-                if esperando_espaco and (
-                (event.type == pygame.KEYDOWN and pygame.K_SPACE) or
-                (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1) or
-                (event.type == pygame.FINGERDOWN)
-                        ): 
-                    if not evento_opcional_executado:
-                        evento_opcional_executado = True
-                        evento_opc = random.choice(eventos_opcionais)
-                        await evento_opc(screen, players[player_index], fundo=bg_jogo, status=desenhar_status)
-                    else:
-                        esperando_espaco = False
-                        alternar_jogador()
-                elif event.key == pygame.K_ESCAPE:
-                    running = False
-
         if estado_tela == EST_JOGO and not iniciou_jogo:
             proximo_turno()
             iniciou_jogo = True
@@ -364,6 +508,7 @@ async def main():
         clock.tick(FPS)
 
     pygame.quit()
+    sys.exit()
 
 if __name__ == "__main__":
     asyncio.run(main())
