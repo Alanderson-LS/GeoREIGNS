@@ -3,7 +3,7 @@ import asyncio
 import random
 import math
 import sys
-from recursos import itens_pendentes 
+
 
 CATALOGO_PAISES = {
     "Guiana Brasileira": {
