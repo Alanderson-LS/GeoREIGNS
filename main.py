@@ -280,7 +280,7 @@ async def mostrar_dialogo_completo(surface, jogador, mensagens: list[str], fundo
             dialogo_rect = pygame.image.load("imagens/personagens/caixa_dialogo.png").get_rect()
             dialogo_rect.center = (surface.get_width() // 2, surface.get_height() - dialogo_rect.height // 2)
             
-            surface.blit(dica, (WIDTH // 2 - dica.get_width() // 2, dialogo_rect.bottom + 5))
+            surface.blit(dica, (WIDTH // 2 - dica.get_width() // 2, dialogo_rect.bottom - 20))
             
             pygame.display.flip()
             
@@ -454,7 +454,7 @@ async def nova_mina_visual(surface, jogador, fundo=None, status=None):
     personagem = "Mestre de Minas"
     dinheiro_ganho = random.randint(10, 20)
     mensagens = [
-        f"{personagem}: Meu rei, descobrimos uma nova jazida de minério!",
+        f"{personagem}: Meu rei, descobrimos uma nova cheia de minérios!",
         "Isso trará grandes riquezas para o nosso reino!",
         f"Seu dinheiro aumentou em {dinheiro_ganho} unidades! (+{dinheiro_ganho} dinheiro)",
         f"A tecnologia aumentou em 5 pontos! (+5 tecnologia)"
@@ -560,7 +560,7 @@ async def avanco_tecnologico_visual(surface, jogador, fundo=None, status=None):
     await mostrar_dialogo_completo(surface, jogador, mensagens, fundo, status, img_personagem)
 
 async def falha_infraestrutura_visual(surface, jogador, fundo=None, status=None):
-    personagem = "Engenheiro Frustrado"
+    personagem = "Inventor Frustrado"
     saude_perdida = random.randint(8, 15)
     dinheiro_perdido = random.randint(10, 20)
     mensagens = [
@@ -607,7 +607,7 @@ async def desercoes_exercito_visual(surface, jogador, fundo=None, status=None):
     personagem = "Capitão Preocupado"
     exercito_perdido = random.randint(8, 15)
     mensagens = [
-        f"{personagem}: Lamento informar, Majestade, mas alguns soldados desertaram.",
+        f"{personagem}: Lamento informar, Majestade, mas alguns soldados largaram o serviço.",
         "Eles não suportaram a disciplina e fugiram durante a noite.",
         f"Seu exército diminuiu em {exercito_perdido} pontos! (-{exercito_perdido} exército)"
     ]
